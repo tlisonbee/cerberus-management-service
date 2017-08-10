@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.name.Names;
 import com.nike.backstopper.apierror.projectspecificinfo.ProjectApiErrors;
 import com.nike.cerberus.config.CmsEnvPropertiesLoader;
+import com.nike.cerberus.endpoints.DummyEndpoint;
 import com.nike.cerberus.endpoints.HealthCheckEndpoint;
 import com.nike.cerberus.endpoints.admin.CleanUpInactiveOrOrphanedRecords;
 import com.nike.cerberus.endpoints.admin.GetSDBMetadata;
@@ -102,6 +103,8 @@ public class CmsGuiceModule extends AbstractModule {
 
     private static final String AUTH_CONNECTOR_IMPL_KEY = "cms.auth.connector";
 
+
+
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private Config appConfig;
@@ -163,6 +166,7 @@ public class CmsGuiceModule extends AbstractModule {
     @Named("appEndpoints")
     public Set<Endpoint<?>> appEndpoints(
             HealthCheckEndpoint healthCheckEndpoint,
+            DummyEndpoint dummyEndpoint,
             // Cerberus endpoints
             GetAllCategories getAllCategories,
             GetCategory getCategory,
@@ -190,6 +194,7 @@ public class CmsGuiceModule extends AbstractModule {
     ) {
         return new LinkedHashSet<>(Arrays.<Endpoint<?>>asList(
                 healthCheckEndpoint,
+                dummyEndpoint,
                 // Cerberus endpoints
                 getAllCategories, getCategory, createCategory, deleteCategory,
                 authenticateUser, authenticateIamPrincipal, mfaCheck, refreshUserToken, authenticateIamRole, revokeToken,
@@ -310,4 +315,5 @@ public class CmsGuiceModule extends AbstractModule {
     public CompletableFuture<AppInfo> appInfoFuture(AsyncHttpClientHelper asyncHttpClientHelper) {
         return AwsUtil.getAppInfoFutureWithAwsInfo(asyncHttpClientHelper);
     }
+
 }
