@@ -4,8 +4,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.netflix.hystrix.HystrixCircuitBreaker;
-import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.HystrixCommandMetrics;
+import com.netflix.hystrix.HystrixThreadPoolMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +13,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Periodically print Hystrix metrics to the log
+ * Periodically print Hystrix metrics to the log.
  */
 @Singleton
 public class HystrixMetricsLogger implements Runnable {
@@ -34,25 +34,41 @@ public class HystrixMetricsLogger implements Runnable {
     @Override
     public void run() {
         try {
-            printHystrixMetrics();
+            printHystrixCommandMetrics();
+            printHystrixThreadPoolMetrics();
         } catch (Exception e) {
             LOGGER.warn("Error printing Hystrix metrics", e);
         }
     }
 
-    public void printHystrixMetrics() {
+    public void printHystrixCommandMetrics() {
         for (HystrixCommandMetrics metrics : HystrixCommandMetrics.getInstances()) {
-            String groupName = metrics.getCommandGroup().name();
-            HystrixCommandKey circuitKey = metrics.getCommandKey();
             boolean isCircuitOpen = HystrixCircuitBreaker.Factory.getInstance(metrics.getCommandKey()).isOpen();
-            int mean = metrics.getExecutionTimeMean();
-            int ninetyFifth = metrics.getExecutionTimePercentile(95.0);
-            int ninetyNine = metrics.getExecutionTimePercentile(99.0);
-            int ninetyNineFive = metrics.getExecutionTimePercentile(99.5);
-            HystrixCommandMetrics.HealthCounts health = metrics.getHealthCounts();
 
             LOGGER.info("Hystrix metrics for group:{}, circuit:{}, CircuitOpen:{}, Mean:{}, 95%:{}, 99%:{}, 99.5%:{}, {}",
-                    groupName, circuitKey.name(), isCircuitOpen, mean, ninetyFifth, ninetyNine, ninetyNineFive, health);
+                    metrics.getCommandGroup().name(),
+                    metrics.getCommandKey().name(),
+                    isCircuitOpen,
+                    metrics.getExecutionTimeMean(),
+                    metrics.getExecutionTimePercentile(95.0),
+                    metrics.getExecutionTimePercentile(99.5),
+                    metrics.getExecutionTimePercentile(99.5),
+                    metrics.getHealthCounts()
+            );
+        }
+    }
+
+    public void printHystrixThreadPoolMetrics() {
+        for (HystrixThreadPoolMetrics metrics : HystrixThreadPoolMetrics.getInstances()) {
+            LOGGER.info("Hystrix metrics for threadPool:{}, rollingCounts[rejected:{}, executed:{}, maxActiveThreads:{}], cumulativeCounts[rejected:{}, executed:{}], {}",
+                    metrics.getThreadPoolKey().name(),
+                    metrics.getRollingCountThreadsRejected(),
+                    metrics.getRollingCountThreadsExecuted(),
+                    metrics.getRollingMaxActiveThreads(),
+                    metrics.getCumulativeCountThreadsRejected(),
+                    metrics.getCumulativeCountThreadsExecuted(),
+                    metrics.getThreadPool()
+            );
         }
     }
 }

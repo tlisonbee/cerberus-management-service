@@ -3,12 +3,17 @@ package com.nike.cerberus.hystrix;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.netflix.hystrix.HystrixCommand;
-import com.netflix.hystrix.HystrixCommand.Setter;
-import com.netflix.hystrix.HystrixCommandGroupKey.Factory;
+import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
-import com.netflix.hystrix.HystrixCommandProperties;
 import com.nike.vault.client.VaultAdminClient;
-import com.nike.vault.client.model.*;
+import com.nike.vault.client.model.VaultAuthResponse;
+import com.nike.vault.client.model.VaultClientTokenResponse;
+import com.nike.vault.client.model.VaultListResponse;
+import com.nike.vault.client.model.VaultPolicy;
+import com.nike.vault.client.model.VaultTokenAuthRequest;
+
+import java.util.function.Supplier;
+
 
 /**
  * Hystrix wrapper for VaultAdminClient.
@@ -16,15 +21,9 @@ import com.nike.vault.client.model.*;
 @Singleton
 public class HystrixVaultAdminClient {
 
-    private final VaultAdminClient vaultAdminClient;
+    private static final String VAULT = "Vault";
 
-    private static Setter setter(String commandKey) {
-        Setter setter = Setter.withGroupKey(Factory.asKey("vault"))
-                .andCommandKey(HystrixCommandKey.Factory.asKey(commandKey))
-                .andCommandPropertiesDefaults(HystrixCommandProperties.Setter()
-                        .withExecutionTimeoutInMilliseconds(10000));
-        return setter;
-    }
+    private final VaultAdminClient vaultAdminClient;
 
     @Inject
     public HystrixVaultAdminClient(final VaultAdminClient vaultAdminClient) {
@@ -32,78 +31,62 @@ public class HystrixVaultAdminClient {
     }
 
     public VaultAuthResponse createOrphanToken(VaultTokenAuthRequest vaultTokenAuthRequest) {
-        return new HystrixCommand<VaultAuthResponse>(setter("createOrphanToken")) {
-
-            @Override
-            protected VaultAuthResponse run() throws Exception {
-                Thread.sleep(100);
-                return vaultAdminClient.createOrphanToken(vaultTokenAuthRequest);
-            }
-        }.execute();
+        return execute("VaultCreateOrphanToken", () -> vaultAdminClient.createOrphanToken(vaultTokenAuthRequest));
     }
 
     public VaultClientTokenResponse lookupToken(String vaultToken) {
-        return new HystrixCommand<VaultClientTokenResponse>(setter("lookupToken")) {
-
-            @Override
-            protected VaultClientTokenResponse run() throws Exception {
-                return vaultAdminClient.lookupToken(vaultToken);
-            }
-        }.execute();
+        return execute("VaultLookupToken", () -> vaultAdminClient.lookupToken(vaultToken));
     }
 
     public void revokeOrphanToken(final String vaultToken) {
-        new HystrixCommand<Void>(setter("revokeOrphanToken")) {
-
-            @Override
-            protected Void run() throws Exception {
-                vaultAdminClient.revokeOrphanToken(vaultToken);
-                return null;
-            }
-        }.execute();
+        execute("VaultRevokeOrphanToken", () -> vaultAdminClient.revokeOrphanToken(vaultToken));
     }
 
     public VaultListResponse list(final String path) {
-        return new HystrixCommand<VaultListResponse>(setter("list")) {
-
-            @Override
-            protected VaultListResponse run() throws Exception {
-                Thread.sleep(200);
-                return vaultAdminClient.list(path);
-            }
-        }.execute();
+        return execute("VaultList", () -> vaultAdminClient.list(path));
     }
 
     public void delete(final String path) {
-        new HystrixCommand<Void>(setter("delete")) {
-
-            @Override
-            protected Void run() throws Exception {
-                vaultAdminClient.delete(path);
-                return null;
-            }
-        }.execute();
+        execute("VaultDelete", () -> vaultAdminClient.delete(path));
     }
 
     public void putPolicy(final String name, final VaultPolicy policy) {
-        new HystrixCommand<Void>(setter("putPolicy")) {
+        execute("VaultPutPolicy", () -> vaultAdminClient.putPolicy(name, policy));
+    }
+
+    public void deletePolicy(final String name) {
+        execute("VaultDeletePolicy", () -> vaultAdminClient.deletePolicy(name));
+    }
+
+    /**
+     * Execute a function that returns a value
+     */
+    private static <T> T execute(String commandKey, Supplier<T> function) {
+        return new HystrixCommand<T>(buildSetter(commandKey)) {
+
+            @Override
+            protected T run() throws Exception {
+                return function.get();
+            }
+        }.execute();
+    }
+
+    /**
+     * Execute a function with void return type
+     */
+    private static void execute(String commandKey, Runnable function) {
+        new HystrixCommand<Void>(buildSetter(commandKey)) {
 
             @Override
             protected Void run() throws Exception {
-                vaultAdminClient.putPolicy(name, policy);
+                function.run();
                 return null;
             }
         }.execute();
     }
 
-    public void deletePolicy(final String name) {
-        new HystrixCommand<Void>(setter("deletePolicy")) {
-
-            @Override
-            protected Void run() throws Exception {
-                vaultAdminClient.deletePolicy(name);
-                return null;
-            }
-        }.execute();
+    private static HystrixCommand.Setter buildSetter(String commandKey) {
+        return HystrixCommand.Setter.withGroupKey(HystrixCommandGroupKey.Factory.asKey(VAULT))
+                .andCommandKey(HystrixCommandKey.Factory.asKey(commandKey));
     }
 }

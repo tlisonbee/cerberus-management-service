@@ -34,6 +34,7 @@ import com.nike.backstopper.exception.ApiException;
 import com.nike.cerberus.aws.KmsClientFactory;
 import com.nike.cerberus.dao.AwsIamRoleDao;
 import com.nike.cerberus.error.DefaultApiError;
+import com.nike.cerberus.hystrix.HystrixKmsClientFactory;
 import com.nike.cerberus.record.AwsIamRoleKmsKeyRecord;
 import com.nike.cerberus.util.DateTimeSupplier;
 import com.nike.cerberus.util.UuidSupplier;

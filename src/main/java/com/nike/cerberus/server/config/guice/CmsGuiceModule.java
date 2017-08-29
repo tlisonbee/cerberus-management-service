@@ -20,6 +20,7 @@ package com.nike.cerberus.server.config.guice;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.name.Names;
 import com.nike.backstopper.apierror.projectspecificinfo.ProjectApiErrors;
+import com.nike.cerberus.aws.KmsClientFactory;
 import com.nike.cerberus.config.CmsEnvPropertiesLoader;
 import com.nike.cerberus.endpoints.HealthCheckEndpoint;
 import com.nike.cerberus.endpoints.admin.CleanUpInactiveOrOrphanedRecords;
@@ -47,6 +48,7 @@ import com.nike.cerberus.endpoints.sdb.UpdateSafeDepositBoxV1;
 import com.nike.cerberus.endpoints.sdb.UpdateSafeDepositBoxV2;
 import com.nike.cerberus.error.DefaultApiErrorsImpl;
 import com.nike.cerberus.auth.connector.AuthConnector;
+import com.nike.cerberus.hystrix.HystrixKmsClientFactory;
 import com.nike.cerberus.hystrix.HystrixMetricsLogger;
 import com.nike.cerberus.hystrix.HystrixVaultAdminClient;
 import com.nike.cerberus.security.CmsRequestSecurityValidator;
@@ -322,5 +324,11 @@ public class CmsGuiceModule extends AbstractModule {
     @Named("hystrixExecutor")
     public ScheduledExecutorService executor() {
         return Executors.newSingleThreadScheduledExecutor();
+    }
+
+    @Provides
+    @Singleton
+    public KmsClientFactory hystrixKmsClientFactory() {
+        return new HystrixKmsClientFactory(new KmsClientFactory());
     }
 }
