@@ -44,7 +44,7 @@ public class CmsEnvConfigLoader {
 
     private static final String ENV_PATH = "data/cms/environment.properties";
     private static final String CERTIFICATE_PATH = "data/cms/cms-cert.pem";
-    private static final String PRIVATE_KEY_PATH = "data/cms/cms-key.pem";
+    private static final String PRIVATE_KEY_PATH = "data/cms/cms-pkcs8-key.pem";
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -93,7 +93,11 @@ public class CmsEnvConfigLoader {
     }
 
     /**
-     * Get the value of the Private Key from S3
+     * Get the value of the PKCS8 Private Key from S3.
+     *
+     * The SslContextBuilder and Netty´s SslContext implementations only support PKCS8 keys.
+     *
+     * http://netty.io/wiki/sslcontextbuilder-and-private-key.html
      */
     public String getPrivateKey() {
         return getObject(PRIVATE_KEY_PATH);

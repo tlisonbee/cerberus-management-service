@@ -83,6 +83,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.validation.Validation;
 import javax.validation.Validator;
+import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.security.PrivateKey;
@@ -336,6 +337,11 @@ public class CmsGuiceModule extends AbstractModule {
         return new StaticAssetManager(DASHBOARD_DIRECTORY_RELATIVE_PATH, maxDepthOfFileTraversal);
     }
 
+    /**
+     * The SslContextBuilder and Netty´s SslContext implementations only support PKCS8 keys.
+     *
+     * http://netty.io/wiki/sslcontextbuilder-and-private-key.html
+     */
     @Provides
     @Singleton
     public SslContext sslContext() throws SSLException, CertificateException {
